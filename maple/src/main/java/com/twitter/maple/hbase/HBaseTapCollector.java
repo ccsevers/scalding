@@ -19,11 +19,13 @@
 package com.twitter.maple.hbase;
 
 import cascading.flow.FlowProcess;
-import cascading.flow.hadoop.HadoopFlowProcess;
+import cascading.flow.tez.Hadoop2TezFlowProcess;
 import cascading.tap.Tap;
 import cascading.tap.TapException;
 import cascading.tuple.TupleEntrySchemeCollector;
 import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.conf.Configuration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,13 +60,15 @@ public class HBaseTapCollector extends TupleEntrySchemeCollector<JobConf, TupleE
    * @throws IOException
    *           when fails to initialize
    */
-  public HBaseTapCollector(FlowProcess<JobConf> flowProcess, Tap<JobConf, RecordReader, OutputCollector> tap) throws IOException {
+  public HBaseTapCollector(FlowProcess<? extends JobConf> flowProcess, Tap<JobConf, RecordReader, OutputCollector> tap) throws IOException {
     super(flowProcess, tap.getScheme());
     this.hadoopFlowProcess = flowProcess;
-    this.tap = tap;
+    this.tap =  tap;
     this.conf = new JobConf(flowProcess.getConfigCopy());
     this.setOutput(this);
   }
+
+
 
   @Override
   public void prepare() {
@@ -110,8 +114,8 @@ public class HBaseTapCollector extends TupleEntrySchemeCollector<JobConf, TupleE
    *           when
    */
   public void collect(Object writableComparable, Object writable) throws IOException {
-    if (hadoopFlowProcess instanceof HadoopFlowProcess)
-      ((HadoopFlowProcess) hadoopFlowProcess).getReporter().progress();
+    // if (hadoopFlowProcess instanceof Hadoop2TezFlowProcess)
+    //   ((Hadoop2TezFlowProcess) hadoopFlowProcess).getReporter().progress();
 
     writer.write(writableComparable, writable);
   }

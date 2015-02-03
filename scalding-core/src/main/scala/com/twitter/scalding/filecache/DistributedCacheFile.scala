@@ -105,7 +105,7 @@ final case class UncachedFile private[scalding] (source: Either[String, URI]) {
   }
 
   private[this] def addHdfs(conf: Configuration): CachedFile = {
-    HDistributedCache.createSymlink(conf)
+    // HDistributedCache.createSymlink(conf)
 
     def makeQualifiedStr(path: String, conf: Configuration): URI =
       makeQualified(new Path(path), conf)
@@ -122,7 +122,7 @@ final case class UncachedFile private[scalding] (source: Either[String, URI]) {
         case Right(uri) => makeQualifiedURI(uri, conf)
       }
 
-    HDistributedCache.addCacheFile(symlinkedUriFor(sourceUri), conf)
+    HDistributedCache.addLocalFiles(conf, symlinkedUriFor(sourceUri).toString)
     HadoopCachedFile(sourceUri)
   }
 }

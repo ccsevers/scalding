@@ -6,11 +6,13 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.RecordReader;
 
 import cascading.flow.FlowProcess;
-import cascading.flow.hadoop.HadoopFlowProcess;
+import cascading.flow.tez.Hadoop2TezFlowProcess;
 import cascading.flow.hadoop.util.HadoopUtil;
 import cascading.scheme.Scheme;
 import cascading.scheme.SinkCall;
@@ -42,21 +44,21 @@ public class LocalTap<SourceCtx, SinkCtx> extends Tap<Properties, RecordReader, 
     private static Logger LOG = Logger.getLogger(LocalTap.class.getName());
 
     private String path;
-    private JobConf defaults;
+    private Configuration defaults;
     private Lfs lfs;
 
-    public LocalTap(String path, Scheme<JobConf, RecordReader, OutputCollector, SourceCtx, SinkCtx> scheme,
+    public LocalTap(String path, Scheme<Configuration, RecordReader, OutputCollector, SourceCtx, SinkCtx> scheme,
             SinkMode sinkMode) {
         super(new LocalScheme<SourceCtx, SinkCtx>(scheme), sinkMode);
         setup(path, scheme);
     }
 
-    public LocalTap(String path, Scheme<JobConf, RecordReader, OutputCollector, SourceCtx, SinkCtx> scheme) {
+    public LocalTap(String path, Scheme<Configuration, RecordReader, OutputCollector, SourceCtx, SinkCtx> scheme) {
         super(new LocalScheme<SourceCtx, SinkCtx>(scheme));
         setup(path, scheme);
     }
 
-    private void setup(String path, Scheme<JobConf, RecordReader, OutputCollector, SourceCtx, SinkCtx> scheme) {
+    private void setup(String path, Scheme<Configuration, RecordReader, OutputCollector, SourceCtx, SinkCtx> scheme) {
         this.path = path;
 
         /*
@@ -64,7 +66,7 @@ public class LocalTap<SourceCtx, SinkCtx> extends Tap<Properties, RecordReader, 
          * supply the wrapped Lfs. Make sure you have your serializations and
          * serialization tokens defined there.
          */
-        defaults = new JobConf();
+        defaults = new Configuration();
 
         // HACK: c.t.h.TextLine checks this property for .zip files; the check
         // assumes the list is non-empty, which we mock up, here
@@ -90,16 +92,16 @@ public class LocalTap<SourceCtx, SinkCtx> extends Tap<Properties, RecordReader, 
     }
 
     @Override
-    public TupleEntryIterator openForRead(FlowProcess<Properties> flowProcess, RecordReader input) throws IOException {
-        JobConf jobConf = mergeDefaults("LocalTap#openForRead", flowProcess.getConfigCopy(), defaults);
-        return lfs.openForRead(new HadoopFlowProcess(jobConf));
+    public TupleEntryIterator openForRead(FlowProcess<? extends Properties> flowProcess, RecordReader input) throws IOException {
+        Configuration jobConf = mergeDefaults("LocalTap#openForRead", flowProcess.getConfigCopy(), defaults);
+        return lfs.openForRead(new Hadoop2TezFlowProcess(new TezConfiguration(jobConf)));
     }
 
     @Override
-    public TupleEntryCollector openForWrite(FlowProcess<Properties> flowProcess, OutputCollector output)
+    public TupleEntryCollector openForWrite(FlowProcess<? extends Properties> flowProcess, OutputCollector output)
             throws IOException {
-        JobConf jobConf = mergeDefaults("LocalTap#openForWrite", flowProcess.getConfigCopy(), defaults);
-        return lfs.openForWrite(new HadoopFlowProcess(jobConf));
+        Configuration jobConf = mergeDefaults("LocalTap#openForWrite", flowProcess.getConfigCopy(), defaults);
+        return lfs.openForWrite(new Hadoop2TezFlowProcess(new TezConfiguration(jobConf)));
     }
 
     @Override
@@ -122,12 +124,12 @@ public class LocalTap<SourceCtx, SinkCtx> extends Tap<Properties, RecordReader, 
         return lfs.getModifiedTime(mergeDefaults("LocalTap#getModifiedTime", conf, defaults));
     }
 
-    private static JobConf mergeDefaults(String methodName, Properties properties, JobConf defaults) {
+    private static Configuration mergeDefaults(String methodName, Properties properties, Configuration defaults) {
         LOG.fine(methodName + " is merging defaults with: " + properties);
-        return HadoopUtil.createJobConf(properties, defaults);
+        return HadoopUtil.createJobConf(properties, HadoopUtil.asJobConfInstance(defaults));
     }
 
-    private static Properties overwriteProperties(Properties properties, JobConf jobConf) {
+    private static Properties overwriteProperties(Properties properties, Configuration jobConf) {
         for (Map.Entry<String, String> entry : jobConf) {
             properties.setProperty(entry.getKey(), entry.getValue());
         }
@@ -141,16 +143,16 @@ public class LocalTap<SourceCtx, SinkCtx> extends Tap<Properties, RecordReader, 
             Scheme<Properties, RecordReader, OutputCollector, SourceContext, SinkContext> {
         private static final long serialVersionUID = 5710119342340369543L;
 
-        private Scheme<JobConf, RecordReader, OutputCollector, SourceContext, SinkContext> scheme;
-        private JobConf defaults;
+        private Scheme<Configuration, RecordReader, OutputCollector, SourceContext, SinkContext> scheme;
+        private Configuration defaults;
         private Lfs lfs;
 
-        public LocalScheme(Scheme<JobConf, RecordReader, OutputCollector, SourceContext, SinkContext> scheme) {
+        public LocalScheme(Scheme<Configuration, RecordReader, OutputCollector, SourceContext, SinkContext> scheme) {
             super(scheme.getSourceFields(), scheme.getSinkFields());
             this.scheme = scheme;
         }
 
-        private void setDefaults(JobConf defaults) {
+        private void setDefaults(Configuration defaults) {
             this.defaults = defaults;
         }
 
@@ -159,53 +161,53 @@ public class LocalTap<SourceCtx, SinkCtx> extends Tap<Properties, RecordReader, 
         }
 
         @Override
-        public Fields retrieveSourceFields(FlowProcess<Properties> flowProcess,
+        public Fields retrieveSourceFields(FlowProcess<? extends Properties> flowProcess,
                 Tap tap) {
-            return scheme.retrieveSourceFields(new HadoopFlowProcess(defaults), lfs);
+            return scheme.retrieveSourceFields(new Hadoop2TezFlowProcess(new TezConfiguration(defaults)), lfs);
         }
 
         @Override
-        public void presentSourceFields(FlowProcess<Properties> flowProcess, 
+        public void presentSourceFields(FlowProcess<? extends Properties> flowProcess, 
                 Tap tap, Fields fields) {
-            scheme.presentSourceFields(new HadoopFlowProcess(defaults), lfs, fields);
+            scheme.presentSourceFields(new Hadoop2TezFlowProcess(new TezConfiguration(defaults)), lfs, fields);
         }
 
         @Override
-        public void sourceConfInit(FlowProcess<Properties> flowProcess,
+        public void sourceConfInit(FlowProcess<? extends Properties> flowProcess,
                 Tap<Properties, RecordReader, OutputCollector> tap, Properties conf) {
-            JobConf jobConf = mergeDefaults("LocalScheme#sourceConfInit", conf, defaults);
-            scheme.sourceConfInit(new HadoopFlowProcess(jobConf), lfs, jobConf);
+            Configuration jobConf = mergeDefaults("LocalScheme#sourceConfInit", conf, defaults);
+            scheme.sourceConfInit(new Hadoop2TezFlowProcess(new TezConfiguration(jobConf)), lfs, jobConf);
             overwriteProperties(conf, jobConf);
         }
 
         @Override
-        public Fields retrieveSinkFields(FlowProcess<Properties> flowProcess,
+        public Fields retrieveSinkFields(FlowProcess<? extends Properties> flowProcess,
                 Tap tap) {
-            return scheme.retrieveSinkFields(new HadoopFlowProcess(defaults), lfs);
+            return scheme.retrieveSinkFields(new Hadoop2TezFlowProcess(new TezConfiguration(defaults)), lfs);
         }
 
         @Override
-        public void presentSinkFields(FlowProcess<Properties> flowProcess, 
+        public void presentSinkFields(FlowProcess<? extends Properties> flowProcess, 
                 Tap tap, Fields fields) {
-            scheme.presentSinkFields(new HadoopFlowProcess(defaults), lfs, fields);
+            scheme.presentSinkFields(new Hadoop2TezFlowProcess(new TezConfiguration(defaults)), lfs, fields);
         }
             
         @Override
-        public void sinkConfInit(FlowProcess<Properties> flowProcess,
+        public void sinkConfInit(FlowProcess<? extends Properties> flowProcess,
                 Tap<Properties, RecordReader, OutputCollector> tap, Properties conf) {
-            JobConf jobConf = mergeDefaults("LocalScheme#sinkConfInit", conf, defaults);
-            scheme.sinkConfInit(new HadoopFlowProcess(jobConf), lfs, jobConf);
+            Configuration jobConf = mergeDefaults("LocalScheme#sinkConfInit", conf, defaults);
+            scheme.sinkConfInit(new Hadoop2TezFlowProcess(new TezConfiguration(jobConf)), lfs, jobConf);
             overwriteProperties(conf, jobConf);
         }
 
         @Override
-        public boolean source(FlowProcess<Properties> flowProcess, SourceCall<SourceContext, RecordReader> sourceCall)
+        public boolean source(FlowProcess<? extends Properties> flowProcess, SourceCall<SourceContext, RecordReader> sourceCall)
                 throws IOException {
             throw new RuntimeException("LocalTap#source is never called");
         }
 
         @Override
-        public void sink(FlowProcess<Properties> flowProcess, SinkCall<SinkContext, OutputCollector> sinkCall)
+        public void sink(FlowProcess<? extends Properties> flowProcess, SinkCall<SinkContext, OutputCollector> sinkCall)
                 throws IOException {
             throw new RuntimeException("LocalTap#sink is never called");
         }

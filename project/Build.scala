@@ -22,7 +22,7 @@ object ScaldingBuild extends Build {
 
   val scalaTestVersion = "2.2.2"
   val scalaCheckVersion = "1.11.5"
-  val hadoopVersion = "1.2.1"
+  val hadoopVersion = "2.4.1"
   val algebirdVersion = "0.8.2"
   val bijectionVersion = "0.7.1"
   val chillVersion = "0.5.1"
@@ -195,11 +195,11 @@ object ScaldingBuild extends Build {
     scaldingAvro,
     scaldingParquet,
     scaldingParquetScrooge,
-    scaldingHRaven,
+    // scaldingHRaven,
     scaldingRepl,
     scaldingJson,
     scaldingJdbc,
-    scaldingHadoopTest,
+    // scaldingHadoopTest,
     scaldingMacros,
     maple
   )
@@ -237,7 +237,7 @@ object ScaldingBuild extends Build {
   lazy val scaldingDate = module("date")
 
   lazy val cascadingVersion =
-    System.getenv.asScala.getOrElse("SCALDING_CASCADING_VERSION", "2.6.1")
+    System.getenv.asScala.getOrElse("SCALDING_CASCADING_VERSION", "3.0.0-wip-61")
 
   lazy val cascadingJDBCVersion =
     System.getenv.asScala.getOrElse("SCALDING_CASCADING_JDBC_VERSION", "2.6.0")
@@ -246,14 +246,15 @@ object ScaldingBuild extends Build {
     libraryDependencies ++= Seq(
       "cascading" % "cascading-core" % cascadingVersion,
       "cascading" % "cascading-local" % cascadingVersion,
-      "cascading" % "cascading-hadoop" % cascadingVersion,
+      "cascading" % "cascading-hadoop2-tez" % cascadingVersion,
       "com.twitter" %% "chill" % chillVersion,
       "com.twitter" % "chill-hadoop" % chillVersion,
       "com.twitter" % "chill-java" % chillVersion,
       "com.twitter" %% "bijection-core" % bijectionVersion,
       "com.twitter" %% "algebird-core" % algebirdVersion,
       "com.twitter" %% "algebird-test" % algebirdVersion % "test",
-      "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided",
       "org.slf4j" % "slf4j-api" % slf4jVersion,
       "org.slf4j" % "slf4j-log4j12" % slf4jVersion % "provided"
     )
@@ -282,7 +283,8 @@ object ScaldingBuild extends Build {
       "cascading.avro" % "avro-scheme" % cascadingAvroVersion,
       "org.apache.avro" % "avro" % avroVersion,
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided"
+      "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided"
     )
   ).dependsOn(scaldingCore)
 
@@ -295,7 +297,8 @@ object ScaldingBuild extends Build {
         exclude("com.twitter.elephantbird", "elephant-bird-core"),
       "org.apache.thrift" % "libthrift" % "0.7.0",
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided"
+      "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided"
     )
   ).dependsOn(scaldingCore)
 
@@ -309,7 +312,8 @@ object ScaldingBuild extends Build {
           exclude("com.twitter.elephantbird", "elephant-bird-core"),
         "com.twitter" %% "parquet-scrooge" % parquetVersion,
         "org.slf4j" % "slf4j-api" % slf4jVersion,
-        "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided"
+        "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+        "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided"
       )
     else
       Seq()
@@ -322,14 +326,15 @@ object ScaldingBuild extends Build {
     libraryDependencies ++= scaldingParquetScroogeDeps(scalaVersion.value)
   ).dependsOn(scaldingCore, scaldingParquet % "compile->compile;test->test")
 
-  lazy val scaldingHRaven = module("hraven").settings(
-    libraryDependencies ++= Seq(
-      "com.twitter.hraven" % "hraven-core" % hravenVersion,
-      "org.apache.hbase" % "hbase" % hbaseVersion,
-      "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided"
-    )
-  ).dependsOn(scaldingCore)
+  // lazy val scaldingHRaven = module("hraven").settings(
+  //   libraryDependencies ++= Seq(
+  //     "com.twitter.hraven" % "hraven-core" % hravenVersion,
+  //     "org.apache.hbase" % "hbase" % hbaseVersion,
+  //     "org.slf4j" % "slf4j-api" % slf4jVersion,
+  //     "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+  //     "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided"
+  //   )
+  // ).dependsOn(scaldingCore)
 
   // create new configuration which will hold libs otherwise marked as 'provided'
   // so that we can re-include them in 'run'. unfortunately, we still have to
@@ -352,8 +357,10 @@ object ScaldingBuild extends Build {
         "jline" % "jline" % scalaVersion.take(4),
         "org.scala-lang" % "scala-compiler" % scalaVersion,
         "org.scala-lang" % "scala-reflect" % scalaVersion,
-        "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided",
-        "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "unprovided",
+        "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+        "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided",
+        "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "unprovided",
+        "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "unprovided",
         "org.slf4j" % "slf4j-api" % slf4jVersion,
         "org.slf4j" % "slf4j-log4j12" % slf4jVersion % "provided",
         "org.slf4j" % "slf4j-log4j12" % slf4jVersion % "unprovided"
@@ -373,7 +380,8 @@ object ScaldingBuild extends Build {
 
   lazy val scaldingJson = module("json").settings(
     libraryDependencies <++= (scalaVersion) { scalaVersion => Seq(
-      "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion,
       "org.json4s" %% "json4s-native" % json4SVersion,
       "com.twitter.elephantbird" % "elephant-bird-cascading2" % elephantbirdVersion % "provided"
@@ -383,7 +391,8 @@ object ScaldingBuild extends Build {
 
   lazy val scaldingJdbc = module("jdbc").settings(
     libraryDependencies <++= (scalaVersion) { scalaVersion => Seq(
-      "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided",
       "cascading" % "cascading-jdbc-core" % cascadingJDBCVersion,
       "cascading" % "cascading-jdbc-mysql" % cascadingJDBCVersion
     )
@@ -392,8 +401,11 @@ object ScaldingBuild extends Build {
 
   lazy val scaldingHadoopTest = module("hadoop-test").settings(
     libraryDependencies <++= (scalaVersion) { scalaVersion => Seq(
-      ("org.apache.hadoop" % "hadoop-core" % hadoopVersion),
-      ("org.apache.hadoop" % "hadoop-minicluster" % hadoopVersion),
+      "org.apache.hadoop" % "hadoop-common" % hadoopVersion,
+      "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion,
+      "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % hadoopVersion classifier "tests",
+      "org.apache.hadoop" % "hadoop-minicluster" % hadoopVersion,
+      "org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion classifier "tests",
       "org.slf4j" % "slf4j-api" % slf4jVersion,
       "org.slf4j" % "slf4j-log4j12" % slf4jVersion,
       "org.scalacheck" %% "scalacheck" % scalaCheckVersion,
@@ -423,9 +435,11 @@ object ScaldingBuild extends Build {
     crossPaths := false,
     autoScalaLibrary := false,
     libraryDependencies <++= (scalaVersion) { scalaVersion => Seq(
-      "org.apache.hadoop" % "hadoop-core" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
+      "org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion % "provided",
       "org.apache.hbase" % "hbase" % hbaseVersion % "provided",
-      "cascading" % "cascading-hadoop" % cascadingVersion
+      "cascading" % "cascading-hadoop2-tez" % cascadingVersion,
+      "org.apache.tez" % "tez-dag" % "0.5.2" % "provided"
     )
     }
   )

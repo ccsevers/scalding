@@ -215,7 +215,7 @@ class NullTap[Config, Input, Output, SourceContext, SinkContext]
     SinkMode.UPDATE) {
 
   def getIdentifier = "nullTap"
-  def openForWrite(flowProcess: FlowProcess[Config], output: Output) =
+  def openForWrite(flowProcess: FlowProcess[_ <: Config], output: Output) =
     new TupleEntryCollector {
       override def add(te: TupleEntry) {}
       override def add(t: CTuple) {}

@@ -160,7 +160,7 @@ class LocalCluster(mutex: Boolean = true) {
       val localJarFile = if (resourceDir.isDirectory) MakeJar(resourceDir) else resourceDir
       val hdfsJarPath = new Path(LocalCluster.HADOOP_CLASSPATH_DIR, localJarFile.getName)
       fileSystem.copyFromLocalFile(new Path("file://%s".format(localJarFile.getAbsolutePath)), hdfsJarPath)
-      DistributedCache.addFileToClassPath(hdfsJarPath, jobConf, fileSystem)
+      // DistributedCache.addFileToClassPath(hdfsJarPath, jobConf, fileSystem)
       LOG.debug("Added to Hadoop classpath: " + localJarFile)
       classpath += resourceDir
       true

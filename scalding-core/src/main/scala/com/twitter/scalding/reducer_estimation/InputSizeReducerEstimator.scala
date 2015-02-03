@@ -32,7 +32,7 @@ class InputSizeReducerEstimator extends ReducerEstimator {
     }
 
   private def unrolledSources(step: FlowStep[JobConf]): Seq[Tap[_, _, _]] =
-    unrollTaps(step.getSources.asScala.toSeq)
+    unrollTaps(step.getSourceTaps.asScala.toSeq)
 
   /**
    * Get the total size of the file(s) specified by the Hfs, which may contain a glob

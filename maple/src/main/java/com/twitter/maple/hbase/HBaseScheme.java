@@ -29,6 +29,7 @@ import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapred.TableOutputFormat;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapred.JobConf;
+
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.RecordReader;
 import org.mortbay.log.Log;
@@ -155,7 +156,7 @@ public class HBaseScheme
   }
 
   @Override
-  public void sourcePrepare(FlowProcess<JobConf> flowProcess,
+  public void sourcePrepare(FlowProcess<? extends JobConf> flowProcess,
       SourceCall<Object[], RecordReader> sourceCall) {
     Object[] pair =
         new Object[]{sourceCall.getInput().createKey(), sourceCall.getInput().createValue()};
@@ -164,13 +165,13 @@ public class HBaseScheme
   }
 
   @Override
-  public void sourceCleanup(FlowProcess<JobConf> flowProcess,
+  public void sourceCleanup(FlowProcess<? extends JobConf> flowProcess,
       SourceCall<Object[], RecordReader> sourceCall) {
     sourceCall.setContext(null);
   }
 
   @Override
-  public boolean source(FlowProcess<JobConf> flowProcess,
+  public boolean source(FlowProcess<? extends JobConf> flowProcess,
       SourceCall<Object[], RecordReader> sourceCall) throws IOException {
     Tuple result = new Tuple();
 
@@ -207,7 +208,7 @@ public class HBaseScheme
   }
 
   @Override
-  public void sink(FlowProcess<JobConf> flowProcess, SinkCall<Object[], OutputCollector> sinkCall)
+  public void sink(FlowProcess<? extends JobConf> flowProcess, SinkCall<Object[], OutputCollector> sinkCall)
       throws IOException {
     TupleEntry tupleEntry = sinkCall.getOutgoingEntry();
     OutputCollector outputCollector = sinkCall.getOutput();
@@ -232,7 +233,7 @@ public class HBaseScheme
   }
 
   @Override
-  public void sinkConfInit(FlowProcess<JobConf> process,
+  public void sinkConfInit(FlowProcess<? extends JobConf> process,
       Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
     conf.setOutputFormat(TableOutputFormat.class);
 
@@ -241,7 +242,7 @@ public class HBaseScheme
   }
 
   @Override
-  public void sourceConfInit(FlowProcess<JobConf> process,
+  public void sourceConfInit(FlowProcess<? extends JobConf> process,
       Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
     conf.setInputFormat(TableInputFormat.class);
 

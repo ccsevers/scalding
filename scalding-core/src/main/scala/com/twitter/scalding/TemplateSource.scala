@@ -23,12 +23,13 @@ import cascading.scheme.hadoop.{ TextDelimited => CHTextDelimited }
 import cascading.scheme.hadoop.TextLine.Compress
 import cascading.scheme.Scheme
 import cascading.tap.hadoop.Hfs
-import cascading.tap.hadoop.{ TemplateTap => HTemplateTap }
+import cascading.tap.hadoop.{ PartitionTap => HTemplateTap }
 import cascading.tap.local.FileTap
-import cascading.tap.local.{ TemplateTap => LTemplateTap }
+import cascading.tap.local.{ PartitionTap => LTemplateTap }
 import cascading.tap.SinkMode
 import cascading.tap.Tap
 import cascading.tuple.Fields
+import cascading.tap.partition.DelimitedPartition
 
 /**
  * This is a base class for template based output sources
@@ -57,15 +58,15 @@ abstract class TemplateSource extends SchemedSource {
         mode match {
           case Local(_) => {
             val localTap = new FileTap(localScheme, basePath, sinkMode)
-            new LTemplateTap(localTap, template, pathFields)
+            new LTemplateTap(localTap, new DelimitedPartition(pathFields, template))
           }
           case hdfsMode @ Hdfs(_, _) => {
             val hfsTap = new Hfs(hdfsScheme, basePath, sinkMode)
-            new HTemplateTap(hfsTap, template, pathFields)
+            new HTemplateTap(hfsTap, new DelimitedPartition(pathFields, template))
           }
           case hdfsTest @ HadoopTest(_, _) => {
             val hfsTap = new Hfs(hdfsScheme, hdfsTest.getWritePathFor(this), sinkMode)
-            new HTemplateTap(hfsTap, template, pathFields)
+            new HTemplateTap(hfsTap, new DelimitedPartition(pathFields, template))
           }
           case _ => TestTapFactory(this, hdfsScheme).createTap(readOrWrite)
         }
